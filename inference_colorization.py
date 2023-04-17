@@ -6,21 +6,20 @@ import torch
 from torchvision.transforms.functional import normalize
 from basicsr.utils import imwrite, img2tensor, tensor2img
 from basicsr.utils.download_util import load_file_from_url
-from basicsr.utils.misc import get_device
+
 from basicsr.utils.registry import ARCH_REGISTRY
 
 pretrain_model_url = 'https://github.com/sczhou/CodeFormer/releases/download/v0.1.0/codeformer_colorization.pth'
 
 if __name__ == '__main__':
-    # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    device = get_device()
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-i', '--input_path', type=str, default='./inputs/gray_faces', 
+    parser.add_argument('-i', '--input_path', type=str, default='./inputs/gray_faces',
                     help='Input image or folder. Default: inputs/gray_faces')
-    parser.add_argument('-o', '--output_path', type=str, default=None, 
+    parser.add_argument('-o', '--output_path', type=str, default=None,
                     help='Output folder. Default: results/<input_name>')
-    parser.add_argument('--suffix', type=str, default=None, 
+    parser.add_argument('--suffix', type=str, default=None,
                     help='Suffix of the restored faces. Default: None')
     args = parser.parse_args()
 
@@ -42,11 +41,11 @@ if __name__ == '__main__':
     test_img_num = len(input_img_list)
 
     # ------------------ set up CodeFormer restorer -------------------
-    net = ARCH_REGISTRY.get('CodeFormer')(dim_embd=512, codebook_size=1024, n_head=8, n_layers=9, 
+    net = ARCH_REGISTRY.get('CodeFormer')(dim_embd=512, codebook_size=1024, n_head=8, n_layers=9,
                                             connect_list=['32', '64', '128']).to(device)
-    
+
     # ckpt_path = 'weights/CodeFormer/codeformer.pth'
-    ckpt_path = load_file_from_url(url=pretrain_model_url, 
+    ckpt_path = load_file_from_url(url=pretrain_model_url,
                                     model_dir='weights/CodeFormer', progress=True, file_name=None)
     checkpoint = torch.load(ckpt_path)['params_ema']
     net.load_state_dict(checkpoint)
@@ -66,7 +65,7 @@ if __name__ == '__main__':
         try:
             with torch.no_grad():
                 # w is fixed to 0 since we didn't train the Stage III for colorization
-                output_face = net(input_face, w=0, adain=True)[0] 
+                output_face = net(input_face, w=0, adain=True)[0]
                 save_face = tensor2img(output_face, rgb2bgr=True, min_max=(-1, 1))
             del output_face
             torch.cuda.empty_cache()
